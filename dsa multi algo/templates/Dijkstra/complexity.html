@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dijkstra's Algorithm: Time & Space Complexity</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f0f8ff;
+            color: #333;
+            text-align: center;
+            padding: 20px;
+        }
+        h1 {
+            color: #2c3e50;
+            font-size: 2.5em;
+        }
+        p {
+            font-size: 1.1em;
+            max-width: 800px;
+            margin: auto;
+        }
+        canvas {
+            margin: 40px auto;
+            display: block;
+            max-width: 100%;  /* Allow width to adjust responsively */
+            height: 500px;   /* Larger height */
+        }
+        .highlight {
+            color: #d35400;
+            font-weight: bold;
+        }
+        .slider-container {
+            margin-top: 20px;
+        }
+        label {
+            font-size: 1.2em;
+        }
+        .slider {
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Time & Space Complexity of Dijkstra's Algorithm</h1>
+    <p>
+        Dijkstra's algorithm has different time complexities based on the data structure used for the priority queue:
+        <ul style="text-align: left; display: inline-block; margin-top: 20px;">
+            <li><span class="highlight">Array-based:</span> O(V<sup>2</sup>)</li>
+            <li><span class="highlight">Min-Heap + Adjacency List:</span> O((V + E) log V)</li>
+            <li><span class="highlight">Fibonacci Heap:</span> O(E + V log V)</li>
+        </ul>
+    </p>
+
+    <div class="slider-container">
+        <label for="verticesSlider">Number of Vertices: <span id="vertexValue">5</span></label>
+        <input type="range" id="verticesSlider" class="slider" min="2" max="20" value="5" step="1">
+    </div>
+
+    <div class="slider-container">
+        <label for="edgesSlider">Number of Edges: <span id="edgeValue">10</span></label>
+        <input type="range" id="edgesSlider" class="slider" min="1" max="50" value="10" step="1">
+    </div>
+
+    <canvas id="complexityChart"></canvas>
+
+    <script>
+        const ctx = document.getElementById('complexityChart').getContext('2d');
+
+        // Default data for the chart
+        let vertices = 5;
+        let edges = 10;
+        let complexityData = {
+            'Array-based': 100,
+            'Min-Heap': 40,
+            'Fibonacci Heap': 30
+        };
+
+        // Create the chart
+        const complexityChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['Array-based', 'Min-Heap', 'Fibonacci Heap'],
+                datasets: [{
+                    label: 'Relative Time Complexity (approx. scale)',
+                    data: [complexityData['Array-based'], complexityData['Min-Heap'], complexityData['Fibonacci Heap']],
+                    backgroundColor: [
+                        'rgba(231, 76, 60, 0.7)',
+                        'rgba(52, 152, 219, 0.7)',
+                        'rgba(46, 204, 113, 0.7)'
+                    ],
+                    borderColor: [
+                        'rgba(231, 76, 60, 1)',
+                        'rgba(52, 152, 219, 1)',
+                        'rgba(46, 204, 113, 1)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Complexity Units (lower is better)'
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    title: {
+                        display: true,
+                        text: 'Comparison of Time Complexity Methods'
+                    }
+                },
+                animation: {
+                    duration: 2000,
+                    easing: 'easeOutBounce'
+                }
+            }
+        });
+
+        // Update chart based on vertex and edge slider values
+        const verticesSlider = document.getElementById('verticesSlider');
+        const vertexValueDisplay = document.getElementById('vertexValue');
+        const edgesSlider = document.getElementById('edgesSlider');
+        const edgeValueDisplay = document.getElementById('edgeValue');
+
+        function updateChartData() {
+            // Update the displayed vertex and edge values
+            vertices = verticesSlider.value;
+            edges = edgesSlider.value;
+            vertexValueDisplay.textContent = vertices;
+            edgeValueDisplay.textContent = edges;
+
+            // Adjust complexity data based on vertices and edges
+            complexityData['Array-based'] = vertices * vertices; // Example scaling
+            complexityData['Min-Heap'] = Math.max(30, (vertices * 5) + (edges * 2)); // Example scaling
+            complexityData['Fibonacci Heap'] = Math.max(20, (edges * 4)); // Example scaling
+
+            // Update chart data
+            complexityChart.data.datasets[0].data = [
+                complexityData['Array-based'],
+                complexityData['Min-Heap'],
+                complexityData['Fibonacci Heap']
+            ];
+
+            // Re-render the chart
+            complexityChart.update();
+        }
+
+        // Event listeners for sliders
+        verticesSlider.addEventListener('input', updateChartData);
+        edgesSlider.addEventListener('input', updateChartData);
+
+        // Initial chart update
+        updateChartData();
+    </script>
+</body>
+</html>

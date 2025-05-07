@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Dijkstra's Algorithm Visualizer</title>
+  <script src="https://d3js.org/d3.v5.min.js"></script>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f0f6ff;
+      text-align: center;
+      padding: 20px;
+    }
+    svg {
+      border: 2px solid #ddd;
+      border-radius: 10px;
+      width: 100%;
+      height: 600px;
+      cursor: crosshair;
+    }
+    .node {
+      fill: #3498db;
+      stroke: #2980b9;
+      stroke-width: 2px;
+      cursor: pointer;
+    }
+    .link {
+      stroke: #ccc;
+      stroke-width: 2px;
+    }
+    .highlight {
+      stroke: #e67e22;
+      stroke-width: 4px;
+    }
+    .edge-label {
+      fill: #e74c3c;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    .label {
+      fill: #2c3e50;
+      font-weight: bold;
+    }
+    table {
+      margin: 20px auto;
+      border-collapse: collapse;
+      width: 60%;
+    }
+    th, td {
+      border: 1px solid #aaa;
+      padding: 8px 12px;
+    }
+    th {
+      background-color: #3498db;
+      color: white;
+    }
+    button {
+      margin: 10px;
+      padding: 10px 20px;
+      font-size: 16px;
+      border: none;
+      border-radius: 8px;
+      background-color: #27ae60;
+      color: white;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #219150;
+    }
+  </style>
+</head>
+<body>
+  <h1>Dijkstra's Algorithm Visualizer</h1>
+  <p>Click to add a node. Right-click a node to delete. Click two nodes to connect. Click on edge label to delete edge. Drag to reposition. Run Dijkstra from Node 0.</p>
+  <svg id="graph"></svg>
+  <button onclick="runDijkstra()">Run Dijkstra from Node 0</button>
+
+  <h2>Summary Table</h2>
+  <div id="summary"></div>
+
+  <script>
+    const svg = d3.select("#graph");
+    const radius = 20;
+    let selectedNode = null;
+    let nextNodeId = 6;
+
+    let nodes = [
+      { id: 0, x: 100, y: 150 },
+      { id: 1, x: 200, y: 80 },
+      { id: 2, x: 200, y: 220 },
+      { id: 3, x: 300, y: 80 },
+      { id: 4, x: 300, y: 220 },
+      { id: 5, x: 400, y: 150 }
+    ];
+
+    let links = [
+      { source: 0, target: 1, weight: 5 },
+      { source: 0, target: 2, weight: 3 },
+      { source: 1, target: 2, weight: 1 },
+      { source: 1, target: 3, weight: 2 },
+      { source: 2, target: 3, weight: 4 },
+      { source: 3, target: 4, weight: 2 },
+      { source: 4, target: 5, weight: 6 }
+    ];
+
+    function getNode(id) {
+      return nodes.find(n => n.id === id);
+    }
+
+    function updateGraph(highlightedEdges = []) {
+      svg.selectAll("*").remove();
+
+      // Draw edges
+      svg.selectAll(".link")
+        .data(links)
+        .enter()
+        .append("line")
+        .attr("class", d =>
+          highlightedEdges.some(e => (e[0] === d.source && e[1] === d.target) || (e[0] === d.target && e[1] === d.source))
+            ? "link highlight"
+            : "link"
+        )
+        .attr("x1", d => getNode(d.source).x)
+        .attr("y1", d => getNode(d.source).y)
+        .attr("x2", d => getNode(d.target).x)
+        .attr("y2", d => getNode(d.target).y);
+
+      // Draw edge labels
+      svg.selectAll(".edge-label")
+        .data(links)
+        .enter()
+        .append("text")
+        .attr("class", "edge-label")
+        .attr("x", d => (getNode(d.source).x + getNode(d.target).x) / 2)
+        .attr("y", d => (getNode(d.source).y + getNode(d.target).y) / 2)
+        .text(d => d.weight)
+        .on("click", (event, d) => {
+          if (confirm(`Delete edge ${d.source} ↔ ${d.target}?`)) {
+            links = links.filter(l => !(l.source === d.source && l.target === d.target || l.source === d.target && l.target === d.source));
+            updateGraph();
+          }
+        });
+
+      // Draw nodes
+      svg.selectAll(".node")
+        .data(nodes, d => d.id)
+        .enter()
+        .append("circle")
+        .attr("class", "node")
+        .attr("r", radius)
+        .attr("cx", d => d.x)
+        .attr("cy", d => d.y)
+        .call(d3.drag().on("drag", (event, d) => {
+          d.x = event.x;
+          d.y = event.y;
+          updateGraph();
+        }))
+        .on("click", (event, d) => {
+          event.stopPropagation();
+          if (selectedNode && selectedNode !== d) {
+            let weight = prompt(`Enter weight for edge ${selectedNode.id} → ${d.id}:`, "1");
+            if (weight !== null) {
+              weight = +weight;
+              let existing = links.find(l =>
+                (l.source === selectedNode.id && l.target === d.id) ||
+                (l.source === d.id && l.target === selectedNode.id)
+              );
+              if (existing) {
+                existing.weight = weight;
+              } else {
+                links.push({ source: selectedNode.id, target: d.id, weight });
+              }
+              selectedNode = null;
+              updateGraph();
+            }
+          } else {
+            selectedNode = d;
+          }
+        })
+        .on("contextmenu", (event, d) => {
+          event.preventDefault();
+          nodes = nodes.filter(n => n.id !== d.id);
+          links = links.filter(l => l.source !== d.id && l.target !== d.id);
+          updateGraph();
+        });
+
+      // Node labels
+      svg.selectAll(".label")
+        .data(nodes)
+        .enter()
+        .append("text")
+        .attr("class", "label")
+        .attr("x", d => d.x - 15)
+        .attr("y", d => d.y - 25)
+        .text(d => d.id);
+
+      updateSummary();
+    }
+
+    svg.on("click", function(event) {
+      const coords = d3.pointer(event);
+      nodes.push({ id: nextNodeId++, x: coords[0], y: coords[1] });
+      updateGraph();
+    });
+
+    function updateSummary(distances = {}) {
+      let html = `
+        <table>
+          <thead><tr><th>Node</th><th>Distance from 0</th></tr></thead>
+          <tbody>
+            ${nodes.map(n => `
+              <tr>
+                <td>${n.id}</td>
+                <td>${distances[n.id] !== undefined ? distances[n.id] : "-"}</td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      `;
+      document.getElementById("summary").innerHTML = html;
+    }
+
+    function runDijkstra() {
+      const dist = {};
+      const prev = {};
+      const edges = {};
+      const visited = new Set();
+
+      nodes.forEach(n => {
+        dist[n.id] = Infinity;
+        edges[n.id] = [];
+      });
+      links.forEach(l => {
+        edges[l.source].push({ to: l.target, weight: l.weight });
+        edges[l.target].push({ to: l.source, weight: l.weight });
+      });
+
+      dist[0] = 0;
+      const pq = new Set(nodes.map(n => n.id));
+
+      while (pq.size > 0) {
+        let u = [...pq].reduce((a, b) => (dist[a] < dist[b] ? a : b));
+        pq.delete(u);
+        visited.add(u);
+
+        for (const { to, weight } of edges[u]) {
+          if (dist[u] + weight < dist[to]) {
+            dist[to] = dist[u] + weight;
+            prev[to] = u;
+          }
+        }
+      }
+
+      const highlighted = [];
+      for (let v in prev) {
+        highlighted.push([+prev[v], +v]);
+      }
+
+      updateGraph(highlighted);
+      updateSummary(dist);
+    }
+
+    updateGraph();
+  </script>
+</body>
+</html>
